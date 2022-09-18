@@ -2,7 +2,7 @@ DEBUG=0
 DEBUGGER=0
 SPLIT_UP_LINK=0
 CORE_DIR := src
-TARGET_NAME := km_mame2003_xtreme
+TARGET_NAME := mame2003_xtreme
 
 #gcc 10 sets -fno-common this will patch you to compile until the issue is fixed
 
@@ -191,6 +191,38 @@ else ifeq ($(platform), rpi4_64)
    PLATCFLAGS += -fomit-frame-pointer -ffast-math
    CXXFLAGS = $(CFLAGS) -fno-rtti -fno-exceptions
    CPU_ARCH := arm64
+
+# Rockchip Rk3326 - 32-bit userspace
+
+else ifneq ($(platform), rk3326))
+	TARGET := $(TARGET_NAME)_libretro.so
+	fpic := -fPIC
+  LDFLAGS += $(fpic) -shared -Wl,--version-script=link.T
+	CFLAGS += -Ofast \
+	-flto=4 -fuse-linker-plugin \
+	-fdata-sections -ffunction-sections -Wl,--gc-sections \
+	-fno-stack-protector -fno-ident -fomit-frame-pointer \
+	-falign-functions=1 -falign-jumps=1 -falign-loops=1 \
+	-fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops \
+	-fmerge-all-constants -fno-math-errno -fsigned-char \
+	-marm -march=armv8-a+crc -mfloat-abi=hard -mfpu=neon-fp-armv8
+
+	CFLAGS += -mcpu=cortex-a35 -mtune=cortex-a35
+	CXXFLAGS += $(CFLAGS)
+	CPPFLAGS += $(CFLAGS)
+	ASFLAGS += $(CFLAGS)
+	HAVE_NEON = 1
+	ARCH = arm
+	BUILTIN_GPU = neon
+	USE_DYNAREC = 1
+	CPU_ARCH := arm
+	ARM = 1
+	# If gcc is 5.0 or later
+	ifeq ($(shell echo `$(CC) -dumpversion` ">= 5" | bc -l), 1)
+	LDFLAGS += -static-libgcc -static-libstdc++
+	endif
+
+#######################################
 
 # Amlogic S905/S905X/S912 (AMLGXBB/AMLGXL/AMLGXM) e.g. Khadas VIM1/2 / S905X2 (AMLG12A) & S922X/A311D (AMLG12B) e.g. Khadas VIM3 - 32-bit userspace
 
